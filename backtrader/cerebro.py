@@ -321,6 +321,8 @@ class Cerebro(with_metaclass(MetaParams, object)):
         self._ohistory = list()
         self._fhistory = None
 
+        self._optcount = 1
+
     @staticmethod
     def iterize(iterable):
         '''Handy function which turns things into things that can be iterated upon
@@ -884,11 +886,20 @@ class Cerebro(with_metaclass(MetaParams, object)):
 
         and will create an internal pseudo-iterable if possible
         '''
+        def add_optcount(params):
+            for p in params if isinstance(params, list) else params.values():
+                # not everything here might be iterable and count towards optcount (like e.g. bools)
+                if not isinstance(p, collections.Iterable):
+                    continue
+                self._optcount *= len(p)
+
         self._dooptimize = True
         args = self.iterize(args)
         optargs = itertools.product(*args)
+        add_optcount(args)
 
         optkeys = list(kwargs)
+        add_optcount(kwargs)
 
         vals = self.iterize(kwargs.values())
         optvals = itertools.product(*vals)
@@ -1709,3 +1720,6 @@ class Cerebro(with_metaclass(MetaParams, object)):
             if t.params.strats:
                 for strat in runstrats:
                     strat.notify_timer(t, t.lastwhen, *t.args, **t.kwargs)
+
+    def get_opt_runcount(self):
+        return self._optcount
